@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import dev.forkhandles.result4k.*
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -30,4 +31,22 @@ interface ApiInterface {
 
         }
     }
+}
+
+inline fun <reified T> Call<T>.getResult(): Result<T, Error> {
+    return resultFrom { execute() }
+        .mapFailure { exception ->
+            Error(exception.toString())
+        }
+        .flatMap { response ->
+            if (response.isSuccessful) {
+                if (T::class == Unit::class) {
+                    Success(Unit) as Success<T>
+                } else {
+                    response.body()?.let{ Success(it) } ?: Failure(Error("An Error Occurred in calling the API"))
+                }
+            }  else {
+                Failure(Error("An Error Occurred in calling the API"))
+            }
+        }
 }

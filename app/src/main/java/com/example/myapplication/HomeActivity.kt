@@ -36,9 +36,6 @@ class HomeActivity : AppCompatActivity() {
         val navController = findNavController(R.id.nav_host_fragment_content_main)
         appBarConfiguration = AppBarConfiguration(navController.graph)
         setupActionBarWithNavController(navController, appBarConfiguration)
-        ActivityCompat.requestPermissions(this,
-            arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), REQUEST_CODE_FOREGROUND
-        )
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -66,18 +63,14 @@ class HomeActivity : AppCompatActivity() {
         val hasLocationPermission = ActivityCompat.checkSelfPermission(this,
             Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         if (hasLocationPermission) {
-            Log.i("location", "got the permission")
             fusedLocationClient.lastLocation
                 .addOnSuccessListener { location: Location? ->
                     callback(location)
-                    Log.i("location", location.toString())
                 }.addOnFailureListener{
                     callback(null)
                 }
+        } else {
+            callback(null)
         }
-    }
-
-    companion object {
-        const val REQUEST_CODE_FOREGROUND = 0
     }
 }

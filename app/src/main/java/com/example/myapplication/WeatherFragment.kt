@@ -2,6 +2,7 @@ package com.example.myapplication
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,6 +18,7 @@ class WeatherFragment : Fragment() {
 
     private var _binding: FragmentFirstBinding? = null
     private val binding get() = _binding!!
+    private val viewModel = WeatherViewModel()
 
     override fun onCreateView(
             inflater: LayoutInflater, container: ViewGroup?,
@@ -49,52 +51,26 @@ class WeatherFragment : Fragment() {
         }
     }
 
-    private fun displayWeather(location: String){
-        getWeather(location){
-            it.map { weather ->
-                activity?.runOnUiThread {
-                    binding.titleTextView.text = "Check out the weather in ${weather.location.region}"
-                    binding.temperatureValueTextView.text = "${weather.current.temperature} °C" // TODO
-                    binding.humidityValueTextView.text = "${weather.current.humidity}%" // TODO
-                    binding.impressionValueTextView.text = "${weather.current.condition.impression}" // TODO
+    private fun displayWeather(location: String) {
+        viewModel.fetchWeatherForecast(location) {
+            activity?.runOnUiThread {
+                it.map { weather ->
+                    binding.titleTextView.text =
+                        "Check out the weather in ${weather.location.region}"
+                    binding.temperatureValueTextView.text = "${weather.current.temperature} °C"
+                    binding.humidityValueTextView.text = "${weather.current.humidity}%"
+                    binding.impressionValueTextView.text = "${weather.current.condition.impression}"
 
                     weather.forecast.dailyForecasts.firstOrNull()?.let {
-                        binding.temperatureValueD1TextView.text = "${it.day.temperature} °C" // TODO
-                        binding.humidityValueD1TextView.text = "${it.day.humidity}%" // TODO
-                        binding.impressionValueD1TextView.text = "${it.day.condition.impression}" // TODO
+                        binding.temperatureValueD1TextView.text = "${it.day.temperature} °C"
+                        binding.humidityValueD1TextView.text = "${it.day.humidity}%"
+                        binding.impressionValueD1TextView.text = "${it.day.condition.impression}"
                     }
-
-                }
-            }.mapFailure {
-                activity?.runOnUiThread {
-                    binding.temperatureValueTextView.text = "bye"
+                }.mapFailure {
+                    Log.e("WEATHER", "Couldnt fetch weather details due to the error ${it.message}")
                 }
             }
         }
-    }
-
-    private fun getWeather(postCode: String, callback: (Result<Weather, Error>) -> Unit) {
-        GlobalScope.launch {
-           callback(ApiInterface.create().getWeather(location = postCode).getResult() )
-        }
-    }
-
-    inline fun <reified T> Call<T>.getResult(): Result<T, Error> {
-        return resultFrom { execute() }
-            .mapFailure { exception ->
-                Error(exception.toString())
-            }
-            .flatMap { response ->
-                if (response.isSuccessful) {
-                    if (T::class == Unit::class) {
-                        Success(Unit) as Success<T> // TODO check this
-                    } else {
-                        response.body()?.let{ Success(it) } ?: Failure(Error("Empty body"))
-                    }
-                }  else {
-                    Failure(Error("some other failure"))
-                }
-            }
     }
 
     override fun onDestroyView() {
